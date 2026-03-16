@@ -1,0 +1,42 @@
+# AWS configuration template
+# Copy this to config.yaml and fill in your values.
+# AWS credentials: use IAM role, env vars (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY),
+# or ~/.aws/credentials.
+
+source:
+  metastore_uri: thrift://<hive-metastore-host>:9083
+  database: <source_database>
+
+target:
+  # --- Option A: AWS Glue Catalog ---
+  catalog_type: glue
+  catalog_name: iceberg
+  database: <target_database>
+  glue:
+    warehouse: s3://<your-bucket>/iceberg-warehouse/
+    region: us-east-1
+
+  # --- Option B: S3 Tables ---
+  # catalog_type: s3_tables
+  # s3_tables:
+  #   warehouse: arn:aws:s3tables:<region>:<account>:bucket/<table-bucket-name>
+  #   region: us-east-1
+
+# Omit storage section entirely for AWS — credentials come from IAM/env.
+# storage: {}
+
+spark:
+  master: "local[*]"
+  app_name: hive-to-iceberg
+  driver_memory: 4g
+  extra_packages: []
+  extra_config: {}
+
+tables:
+  - <database>.<table1>
+  - <database>.<table2>
+
+migration:
+  write_mode: create
+  repartition: null
+  partition_by: []

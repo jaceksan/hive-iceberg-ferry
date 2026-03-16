@@ -1,0 +1,42 @@
+# Local development configuration (MinIO + Hadoop catalog)
+
+source:
+  metastore_uri: thrift://localhost:9083
+  database: nyctaxi
+
+target:
+  # Catalog type: hadoop (local), nessie, glue, s3_tables
+  catalog_type: hadoop
+  catalog_name: iceberg
+  database: nyctaxi
+
+  hadoop:
+    warehouse: s3a://iceberg-warehouse/
+
+  # Uncomment to use Nessie REST catalog instead of Hadoop:
+  # catalog_type: nessie
+  # nessie:
+  #   uri: http://localhost:19120/iceberg/
+  #   warehouse: iceberg-warehouse
+
+storage:
+  endpoint: http://localhost:9000
+  access_key: minioadmin
+  secret_key: minioadmin
+  path_style_access: true
+
+spark:
+  master: "local[*]"
+  app_name: hive-to-iceberg
+  driver_memory: 2g
+  extra_packages: []
+  extra_config: {}
+
+tables:
+  - nyctaxi.yellow_tripdata
+  - nyctaxi.green_tripdata
+
+migration:
+  write_mode: create    # create | replace | append
+  repartition: null     # number of output partitions (null = auto)
+  partition_by: []      # list of partition columns
