@@ -1,0 +1,28 @@
+# AIDA validation policy
+#
+# This file wires domains -> pipelines -> steps (command_id + processor_id).
+version: 1
+validation_policy:
+  codegen: []
+  routes:
+    - domain: python
+      pipeline: python-quality
+    - domain: scripts
+      pipeline: python-quality
+    - domain: config
+      pipeline: config-quality
+    - domain: docker
+      pipeline: docker-quality
+  pipelines:
+    python-quality:
+      steps:
+        - command_id: python-compile
+          processor_id: passthrough
+    config-quality:
+      steps:
+        - command_id: yaml-lint
+          processor_id: passthrough
+    docker-quality:
+      steps:
+        - command_id: docker-config
+          processor_id: passthrough

@@ -1,0 +1,25 @@
+# AIDA git policy
+#
+# Configure commit and git workflow policy used by AIDA tools.
+version: 1
+git_policy:
+  commit:
+    subject_max_chars: 70
+    ticket_enabled: false
+    risk_values:
+    - nonprod
+    - low
+    - high
+    risk_enabled: true
+    risk_prefix: risk
+    require_co_authored_by: false
+    template_file: templates/commit-message.txt
+    pre_commit_guidance: false
+  pr:
+    title_template_file: templates/pr-title.txt
+    body_template_file: templates/pr-body.md
+  enforcement:
+    mode: "off"
+  workflow:
+    prefer_force_with_lease: true
+    autosquash_unpublished_only: true

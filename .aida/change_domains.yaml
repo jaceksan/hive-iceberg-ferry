@@ -1,0 +1,27 @@
+# AIDA change domain classification
+#
+# Define how changed paths map to validation domains.
+# See `.aida/validation_policy.yaml` for mapping domains to pipelines.
+version: 1
+domains:
+  - id: python
+    description: Core migration library and CLI
+    match_globs:
+      - "src/hive_to_iceberg/**"
+    root_depth: 1
+  - id: scripts
+    description: Utility and data-loading scripts
+    match_globs:
+      - "scripts/**"
+    root_depth: 1
+  - id: docker
+    description: Docker Compose stack and service configs
+    match_globs:
+      - "docker/**"
+      - "docker-compose.yml"
+  - id: config
+    description: Project and migration YAML configs
+    match_globs:
+      - "config.yaml"
+      - "config.aws.yaml"
+      - "pyproject.toml"
