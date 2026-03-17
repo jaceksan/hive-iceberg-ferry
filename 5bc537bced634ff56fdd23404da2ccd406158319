@@ -1,0 +1,41 @@
+scripts/load_sample_data.py
+  704b02df8c3b8c01 48-58,60-69,73,83,86-89
+README.md
+  704b02df8c3b8c01 36-37,40,64-71,140-144,155-163,167,171-176
+scripts/verify_migration.py
+  704b02df8c3b8c01 1-158
+docker-compose.yml
+  704b02df8c3b8c01 3-4,7-21,23,31,37-38,40-41,60-66,68,79,85,135-136
+src/hive_to_iceberg/migrate.py
+  704b02df8c3b8c01 4-5,13-16,18-34,39-45,57,87,105
+tests/checks.sql
+  704b02df8c3b8c01 1-28
+.gitignore
+  704b02df8c3b8c01 25-32
+scripts/setup_docker.sh
+  704b02df8c3b8c01 1-73
+.aida/rules/docker-stack.md
+  704b02df8c3b8c01 16
+pyproject.toml
+  704b02df8c3b8c01 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "5bc537bced634ff56fdd23404da2ccd406158319",
+  "prompts": {
+    "704b02df8c3b8c01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf875039-f918-4d52-b306-ed075d746135",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 531,
+      "total_deletions": 135,
+      "accepted_lines": 633,
+      "overriden_lines": 0
+    }
+  }
+}
