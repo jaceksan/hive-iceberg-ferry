@@ -5,11 +5,22 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
+# --- Source configs ---
+
 @dataclass
-class SourceConfig:
+class HiveSourceConfig:
     metastore_uri: str
     database: str = "default"
 
+
+@dataclass
+class SourceConfig:
+    type: str = "hive"  # hive | parquet
+    database: str = "default"
+    hive: Optional[HiveSourceConfig] = None
+
+
+# --- Target configs ---
 
 @dataclass
 class HadoopCatalogConfig:
@@ -44,6 +55,8 @@ class TargetConfig:
     glue: Optional[GlueCatalogConfig] = None
     s3_tables: Optional[S3TablesCatalogConfig] = None
 
+
+# --- Shared configs ---
 
 @dataclass
 class StorageConfig:
@@ -89,7 +102,32 @@ def load_config(path: str) -> Config:
     with open(path) as f:
         raw = yaml.safe_load(f)
 
-    source = SourceConfig(**raw["source"])
+    s = raw["source"]
+    source_type = s.get("type", "hive")
+
+    hive_cfg: HiveSourceConfig | None = None
+    if source_type == "hive":
+        # Support both new nested format and legacy flat format
+        if "hive" in s:
+            hive_raw = s["hive"]
+            hive_cfg = HiveSourceConfig(
+                metastore_uri=hive_raw["metastore_uri"],
+                database=hive_raw.get("database", s.get("database", "default")),
+            )
+        elif "metastore_uri" in s:
+            # Legacy flat format: source.metastore_uri
+            hive_cfg = HiveSourceConfig(
+                metastore_uri=s["metastore_uri"],
+                database=s.get("database", "default"),
+            )
+        else:
+            raise ValueError("Hive source requires 'hive.metastore_uri' or 'metastore_uri'")
+
+    source = SourceConfig(
+        type=source_type,
+        database=s.get("database", "default"),
+        hive=hive_cfg,
+    )
 
     t = raw["target"]
     target = TargetConfig(

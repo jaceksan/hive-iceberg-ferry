@@ -23,7 +23,7 @@ from .migrate import run_migration
 )
 @click.option("-v", "--verbose", is_flag=True, help="Enable debug logging.")
 def main(config_path: str, table_list: str | None, verbose: bool) -> None:
-    """Migrate Hive tables to Iceberg (S3 Tables / Glue / MinIO)."""
+    """Migrate tables to Iceberg from any supported source (Hive, Parquet, ...)."""
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",

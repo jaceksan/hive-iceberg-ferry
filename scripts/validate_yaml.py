@@ -34,13 +34,31 @@ def validate_file(path: Path) -> list[str]:
         if key not in data:
             errors.append(f"{path}: missing required key '{key}'")
 
+    source = data.get("source")
+    if isinstance(source, dict):
+        src_type = source.get("type", "hive")
+        valid_source_types = {"hive", "parquet"}
+        if src_type not in valid_source_types:
+            errors.append(
+                f"{path}: source.type '{src_type}' not in {valid_source_types}"
+            )
+        if src_type == "hive":
+            # Accept both nested hive.metastore_uri and legacy flat metastore_uri
+            hive_cfg = source.get("hive")
+            has_nested = isinstance(hive_cfg, dict) and "metastore_uri" in hive_cfg
+            has_flat = "metastore_uri" in source
+            if not has_nested and not has_flat:
+                errors.append(
+                    f"{path}: hive source requires 'hive.metastore_uri' or 'metastore_uri'"
+                )
+
     target = data.get("target")
     if isinstance(target, dict):
         cat_type = target.get("catalog_type")
-        valid_types = {"hadoop", "nessie", "glue", "s3_tables"}
-        if cat_type and cat_type not in valid_types:
+        valid_catalog_types = {"hadoop", "nessie", "glue", "s3_tables"}
+        if cat_type and cat_type not in valid_catalog_types:
             errors.append(
-                f"{path}: target.catalog_type '{cat_type}' not in {valid_types}"
+                f"{path}: target.catalog_type '{cat_type}' not in {valid_catalog_types}"
             )
 
     return errors

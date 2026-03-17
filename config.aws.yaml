@@ -4,8 +4,10 @@
 # or ~/.aws/credentials.
 
 source:
-  metastore_uri: thrift://<hive-metastore-host>:9083
+  type: hive
   database: <source_database>
+  hive:
+    metastore_uri: thrift://<hive-metastore-host>:9083
 
 target:
   # --- Option A: AWS Glue Catalog ---

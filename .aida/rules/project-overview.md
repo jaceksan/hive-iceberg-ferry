@@ -1,5 +1,5 @@
 ---
-description: Project architecture, domain model, and key design decisions for hive-iceberg-ferry
+description: Project architecture, domain model, and key design decisions for iceberg-ferry
 globs:
   - src/hive_to_iceberg/**
   - scripts/**
@@ -8,16 +8,18 @@ globs:
 alwaysApply: false
 ---
 
-# Hive-to-Iceberg Ferry — Project Overview
+# Iceberg Ferry — Project Overview
 
 ## What this project does
 
-CLI tool that migrates Hive tables to Apache Iceberg format using PySpark.
-Reads from a Hive metastore (Thrift), writes to an Iceberg catalog (Hadoop, Nessie, AWS Glue, or S3 Tables).
+CLI tool that migrates data from pluggable sources to Apache Iceberg format using PySpark.
+Built-in sources: Hive (via Thrift metastore) and Parquet files.
+Target catalogs: Hadoop, Nessie, AWS Glue, AWS S3 Tables.
 
 ## Owns
 
-- Hive-to-Iceberg migration logic (`src/hive_to_iceberg/`)
+- Migration logic and Iceberg write path (`src/hive_to_iceberg/`)
+- Pluggable source framework (`src/hive_to_iceberg/sources/`)
 - YAML-driven configuration for source, target, storage, Spark, and migration behavior
 - Docker Compose local dev stack (Hive metastore, MinIO, Presto, PostgreSQL)
 - Sample data loading scripts (`scripts/`)
@@ -31,7 +33,7 @@ Reads from a Hive metastore (Thrift), writes to an Iceberg catalog (Hadoop, Ness
 ## Critical constraints
 
 - **CRITICAL:** Target is always Iceberg. Do not introduce alternative target formats. The platform standardizes on Iceberg as the open table format.
-- **CRITICAL:** Source is currently Hive-only but the architecture should evolve to support pluggable sources (JDBC, Delta Lake, Parquet files, CSV, etc.). Keep source-specific logic isolated.
+- **CRITICAL:** Sources are pluggable via the `Source` ABC in `sources/base.py`. All source-specific logic must live in `sources/` — never in `migrate.py`.
 - **NEVER:** Hardcode AWS credentials in config files or source code. Use IAM roles or environment variables for AWS deployments.
 
 ## Key components
@@ -40,7 +42,11 @@ Reads from a Hive metastore (Thrift), writes to an Iceberg catalog (Hadoop, Ness
 |-----------|------|------|
 | CLI | `src/hive_to_iceberg/cli.py` | Click entry point, argument parsing, summary output |
 | Config | `src/hive_to_iceberg/config.py` | YAML parsing into typed dataclasses |
-| Migration engine | `src/hive_to_iceberg/migrate.py` | SparkSession setup, table read/write, row validation |
+| Migration engine | `src/hive_to_iceberg/migrate.py` | SparkSession setup, Iceberg write, row validation |
+| Source ABC | `src/hive_to_iceberg/sources/base.py` | Interface for pluggable sources |
+| Source registry | `src/hive_to_iceberg/sources/registry.py` | Maps `source.type` to implementation |
+| Hive source | `src/hive_to_iceberg/sources/hive.py` | Reads from Hive metastore |
+| Parquet source | `src/hive_to_iceberg/sources/parquet.py` | Reads Parquet files from local/S3 |
 | Sample data loader | `scripts/load_sample_data.py` | Downloads NYC taxi parquet, loads into Hive |
 | YAML config validator | `scripts/validate_yaml.py` | Validates config files structure and values |
 

@@ -4,6 +4,7 @@ import logging
 from pyspark.sql import SparkSession
 
 from .config import Config
+from .sources import Source, get_source
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +15,8 @@ _ICEBERG_AWS = "org.apache.iceberg:iceberg-aws-bundle:1.7.1"
 _S3_TABLES_CATALOG = "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3"
 
 
-def build_spark_session(config: Config) -> SparkSession:
-    """Build a SparkSession with Hive source and Iceberg target catalogs."""
+def build_spark_session(config: Config, source: Source) -> SparkSession:
+    """Build a SparkSession with source and Iceberg target catalogs."""
     builder = (
         SparkSession.builder
         .appName(config.spark.app_name)
@@ -25,19 +26,17 @@ def build_spark_session(config: Config) -> SparkSession:
             "spark.sql.extensions",
             "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
         )
-        .enableHiveSupport()
     )
 
-    # Hive Metastore connection
-    builder = builder.config(
-        "spark.hadoop.hive.metastore.uris", config.source.metastore_uri
-    )
+    packages: list[str] = [_ICEBERG_SPARK, _HADOOP_AWS]
 
-    packages = [_ICEBERG_SPARK, _HADOOP_AWS]
+    # Source-specific configuration
+    builder = source.configure_spark(builder, packages)
+
+    # --- Iceberg catalog configuration ---
     cat = config.target.catalog_name
     cat_type = config.target.catalog_type
 
-    # --- Catalog-specific configuration ---
     if cat_type == "hadoop":
         cfg = config.target.hadoop
         builder = (
@@ -49,7 +48,6 @@ def build_spark_session(config: Config) -> SparkSession:
 
     elif cat_type == "nessie":
         cfg = config.target.nessie
-        # Uses Iceberg REST catalog (built into iceberg-spark-runtime, no extra JARs)
         builder = (
             builder
             .config(f"spark.sql.catalog.{cat}", "org.apache.iceberg.spark.SparkCatalog")
@@ -121,25 +119,22 @@ def build_spark_session(config: Config) -> SparkSession:
 
 def migrate_table(
     spark: SparkSession,
+    source: Source,
     config: Config,
-    source_table: str,
+    table_ref: str,
     target_db: str,
 ) -> dict:
-    """Migrate a single Hive table to the Iceberg target catalog."""
+    """Migrate a single table to the Iceberg target catalog."""
     cat = config.target.catalog_name
+    src_name = source.resolve_table(table_ref)
 
-    if "." in source_table:
-        src_db, src_name = source_table.rsplit(".", 1)
-    else:
-        src_db = config.source.database
-        src_name = source_table
+    # For catalog sources, derive the target table name from the last segment
+    target_table_name = src_name.rsplit(".", 1)[-1]
+    full_target = f"{cat}.{target_db}.{target_table_name}"
 
-    full_source = f"{src_db}.{src_name}"
-    full_target = f"{cat}.{target_db}.{src_name}"
+    logger.info("Migrating %s -> %s", src_name, full_target)
 
-    logger.info("Migrating %s -> %s", full_source, full_target)
-
-    df = spark.table(full_source)
+    df = source.read_table(spark, table_ref)
     src_count = df.count()
     logger.info("  Source rows: %d", src_count)
 
@@ -170,7 +165,7 @@ def migrate_table(
     logger.info("  Target rows: %d", tgt_count)
 
     return {
-        "source": full_source,
+        "source": src_name,
         "target": full_target,
         "source_rows": src_count,
         "target_rows": tgt_count,
@@ -184,13 +179,14 @@ def run_migration(config: Config, tables: list[str] | None = None) -> list[dict]
         logger.warning("No tables to migrate")
         return []
 
+    source = get_source(config.source)
     target_db = config.target.database
-    spark = build_spark_session(config)
+    spark = build_spark_session(config, source)
 
     results = []
     for table in tables:
         try:
-            result = migrate_table(spark, config, table, target_db)
+            result = migrate_table(spark, source, config, table, target_db)
             result["status"] = "success"
         except Exception as e:
             logger.error("Failed to migrate %s: %s", table, e, exc_info=True)

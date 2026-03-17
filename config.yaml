@@ -1,8 +1,10 @@
 # Local development configuration (MinIO + Hadoop catalog)
 
 source:
-  metastore_uri: thrift://localhost:9083
+  type: hive
   database: nyctaxi
+  hive:
+    metastore_uri: thrift://localhost:9083
 
 target:
   # Catalog type: hadoop (local), nessie, glue, s3_tables
