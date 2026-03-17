@@ -45,11 +45,32 @@ def download_datasets() -> dict[str, Path]:
     return paths
 
 
+def _find_ivy_jars(*artifacts: str) -> list[str]:
+    """Find downloaded Maven JARs in the Ivy cache."""
+    ivy_jars = Path.home() / ".ivy2" / "jars"
+    found = []
+    for art in artifacts:
+        matches = list(ivy_jars.glob(f"*{art}*"))
+        if matches:
+            found.append(str(matches[0]))
+    return found
+
+
 def build_spark() -> SparkSession:
-    return (
+    # First pass: resolve Maven packages so JARs land in Ivy cache.
+    # We need hadoop-aws on the driver classpath for Hive's S3A support.
+    packages = "org.apache.hadoop:hadoop-aws:3.3.4"
+
+    # Check if JARs are already cached; if so, add them to driver classpath
+    # so Spark's embedded Hive client can resolve S3AFileSystem.
+    extra_cp = _find_ivy_jars("hadoop-aws", "aws-java-sdk-bundle")
+    extra_cp_str = ":".join(extra_cp) if extra_cp else ""
+
+    builder = (
         SparkSession.builder
         .appName("load-sample-data")
         .master("local[*]")
+        .config("spark.sql.warehouse.dir", "s3a://hive-warehouse/")
         .config("spark.hadoop.hive.metastore.uris", "thrift://localhost:9083")
         .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin")
@@ -59,10 +80,13 @@ def build_spark() -> SparkSession:
             "spark.hadoop.fs.s3a.impl",
             "org.apache.hadoop.fs.s3a.S3AFileSystem",
         )
-        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4")
-        .enableHiveSupport()
-        .getOrCreate()
+        .config("spark.jars.packages", packages)
     )
+
+    if extra_cp_str:
+        builder = builder.config("spark.driver.extraClassPath", extra_cp_str)
+
+    return builder.enableHiveSupport().getOrCreate()
 
 
 def load_to_hive(max_rows: int) -> None:

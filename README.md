@@ -33,10 +33,11 @@ uv sync
 ### 2. Start local infrastructure
 
 ```bash
-docker compose up -d
+./scripts/setup_docker.sh                 # default: Hive 3.1.3 (for PySpark 3.5)
+./scripts/setup_docker.sh --profile hive4  # Hive 4.0.1 (for PySpark 4.x)
 ```
 
-This spins up PostgreSQL (Hive metastore backend), Apache Hive 4.0.1, MinIO (S3-compatible storage), and Presto.
+Downloads the PostgreSQL JDBC driver (required by Hive metastore), starts the Docker Compose stack, and waits for the metastore to be ready. Services: PostgreSQL, Hive metastore, MinIO, and Presto.
 
 ### 3. Load sample data
 
@@ -59,6 +60,14 @@ uv run hive-to-iceberg -c config.yaml -t nyctaxi.yellow_tripdata
 ```
 
 Add `-v` for debug logging.
+
+### 5. Verify the migration
+
+```bash
+uv run python scripts/verify_migration.py
+```
+
+Runs SQL checks from `tests/checks.sql` against the migrated Iceberg tables — row count comparisons, non-empty assertions, and schema spot-checks. Use `-q` to point at a custom SQL file.
 
 ## Configuration
 
@@ -128,7 +137,11 @@ See `sources/parquet.py` for a minimal example.
 │       └── parquet.py    # Parquet file source
 ├── scripts/
 │   ├── load_sample_data.py
-│   └── validate_yaml.py
+│   ├── verify_migration.py  # SQL-based post-migration verification
+│   ├── validate_yaml.py
+│   └── setup_docker.sh      # Docker stack bootstrap with profile support
+├── tests/
+│   └── checks.sql           # SQL verification checks (editable)
 ├── docker/
 │   ├── hive/             # Hive metastore config (hive-site.xml, core-site.xml)
 │   └── presto/           # Presto catalog config
@@ -139,12 +152,27 @@ See `sources/parquet.py` for a minimal example.
 
 ## Docker Compose Stack
 
+The stack uses [Docker Compose profiles](https://docs.docker.com/compose/profiles/) to support multiple Hive versions:
+
+| Profile | Hive image | PySpark compatibility |
+|---------|------------|----------------------|
+| `hive3` (default) | `apache/hive:3.1.3` | PySpark 3.5.x |
+| `hive4` | `apache/hive:4.0.1` | PySpark 4.x |
+
+Maven coordinates for Iceberg and Hadoop are auto-detected based on the installed PySpark version — no config changes needed.
+
 | Service | Port | Purpose |
 |---------|------|---------|
 | PostgreSQL 16 | 5432 | Hive metastore backend |
-| Hive 4.0.1 | 9083 | Thrift metastore server |
+| Hive metastore | 9083 | Thrift metastore server (version depends on profile) |
 | MinIO | 9000 / 9001 | S3-compatible object storage + console |
 | Presto | 8080 | Query engine for validation |
+
+Each profile uses its own PostgreSQL volume (`postgres-data-hive3` / `postgres-data-hive4`), so switching profiles doesn't require clearing data. Just stop one and start the other:
+```bash
+docker compose --profile hive3 down
+./scripts/setup_docker.sh --profile hive4
+```
 
 ## How It Works
 

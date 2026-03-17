@@ -13,7 +13,7 @@ alwaysApply: false
 | Service | Image | Port | Purpose |
 |---------|-------|------|---------|
 | PostgreSQL 16 | `postgres:16` | 5432 | Hive metastore backend DB |
-| Hive 4.0.1 | `apache/hive:4.0.1` | 9083 | Thrift metastore server |
+| Hive 3.1.3 | `apache/hive:4.0.1` | 9083 | Thrift metastore server |
 | MinIO | `minio/minio` | 9000, 9001 | S3-compatible object storage |
 | MinIO init | `minio/mc` | — | Creates `hive-warehouse` and `iceberg-warehouse` buckets |
 | Presto | `prestodb/presto` | 8080 | Query engine for ad-hoc validation |

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+
+import pyspark
 from pyspark.sql import SparkSession
 
 from .config import Config
@@ -8,15 +10,39 @@ from .sources import Source, get_source
 
 logger = logging.getLogger(__name__)
 
-# Maven coordinates — versions pinned to PySpark 3.5 / Iceberg 1.7
-_ICEBERG_SPARK = "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1"
-_HADOOP_AWS = "org.apache.hadoop:hadoop-aws:3.3.4"
-_ICEBERG_AWS = "org.apache.iceberg:iceberg-aws-bundle:1.7.1"
-_S3_TABLES_CATALOG = "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3"
+# --- Version-dependent Maven coordinates ---
+
+_SPARK_MAJOR = int(pyspark.__version__.split(".")[0])
+
+
+def _iceberg_packages() -> tuple[str, str, str, str]:
+    """Return (iceberg_spark, hadoop_aws, iceberg_aws, s3_tables_catalog)
+    matched to the installed PySpark major version."""
+    if _SPARK_MAJOR >= 4:
+        return (
+            "org.apache.iceberg:iceberg-spark-runtime-4.0_2.13:1.8.1",
+            "org.apache.hadoop:hadoop-aws:3.4.1",
+            "org.apache.iceberg:iceberg-aws-bundle:1.8.1",
+            "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
+        )
+    # Spark 3.5 (default)
+    return (
+        "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1",
+        "org.apache.hadoop:hadoop-aws:3.3.4",
+        "org.apache.iceberg:iceberg-aws-bundle:1.7.1",
+        "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
+    )
 
 
 def build_spark_session(config: Config, source: Source) -> SparkSession:
     """Build a SparkSession with source and Iceberg target catalogs."""
+    iceberg_spark, hadoop_aws, iceberg_aws, s3_tables_catalog = _iceberg_packages()
+
+    logger.info(
+        "PySpark %s detected (major=%d), using Iceberg runtime: %s",
+        pyspark.__version__, _SPARK_MAJOR, iceberg_spark,
+    )
+
     builder = (
         SparkSession.builder
         .appName(config.spark.app_name)
@@ -28,7 +54,7 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
         )
     )
 
-    packages: list[str] = [_ICEBERG_SPARK, _HADOOP_AWS]
+    packages: list[str] = [iceberg_spark, hadoop_aws]
 
     # Source-specific configuration
     builder = source.configure_spark(builder, packages)
@@ -58,7 +84,7 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
 
     elif cat_type == "glue":
         cfg = config.target.glue
-        packages.append(_ICEBERG_AWS)
+        packages.append(iceberg_aws)
         builder = (
             builder
             .config(f"spark.sql.catalog.{cat}", "org.apache.iceberg.spark.SparkCatalog")
@@ -76,7 +102,7 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
 
     elif cat_type == "s3_tables":
         cfg = config.target.s3_tables
-        packages.extend([_ICEBERG_AWS, _S3_TABLES_CATALOG])
+        packages.extend([iceberg_aws, s3_tables_catalog])
         builder = (
             builder
             .config(f"spark.sql.catalog.{cat}", "org.apache.iceberg.spark.SparkCatalog")
