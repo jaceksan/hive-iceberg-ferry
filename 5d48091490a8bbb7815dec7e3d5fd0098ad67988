@@ -1,0 +1,37 @@
+.aida/validation_registry.yaml
+  704b02df8c3b8c01 8-35
+.aida/rules/docker-stack.md
+  704b02df8c3b8c01 1-34
+.aida/change_domains.yaml
+  704b02df8c3b8c01 7-27
+scripts/validate_yaml.py
+  704b02df8c3b8c01 1-65
+.aida/rules/project-overview.md
+  704b02df8c3b8c01 1-52
+.aida/rules/migration-engine.md
+  704b02df8c3b8c01 1-44
+.aida/validation_policy.yaml
+  704b02df8c3b8c01 8-28
+.aida/git_policy.yaml
+  704b02df8c3b8c01 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "5d48091490a8bbb7815dec7e3d5fd0098ad67988",
+  "prompts": {
+    "704b02df8c3b8c01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf875039-f918-4d52-b306-ed075d746135",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 296,
+      "total_deletions": 38,
+      "accepted_lines": 266,
+      "overriden_lines": 0
+    }
+  }
+}
