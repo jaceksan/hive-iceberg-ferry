@@ -1,0 +1,25 @@
+README.md
+  704b02df8c3b8c01 25
+config.custom.yaml
+  704b02df8c3b8c01 7-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "1756849d81cab45f0b555304296e47f466319959",
+  "prompts": {
+    "704b02df8c3b8c01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf875039-f918-4d52-b306-ed075d746135",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 1,
+      "accepted_lines": 270,
+      "overriden_lines": 0
+    }
+  }
+}
