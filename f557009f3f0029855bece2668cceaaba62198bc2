@@ -1,0 +1,35 @@
+scripts/setup_docker.sh
+  704b02df8c3b8c01 40-41,61
+tests/checks-nessie.sql
+  704b02df8c3b8c01 1-17
+scripts/validate_yaml.py
+  704b02df8c3b8c01 13
+docker/hive/entrypoint-wrapper.sh
+  704b02df8c3b8c01 1-18
+config.nessie.yaml
+  704b02df8c3b8c01 1-41
+src/hive_to_iceberg/migrate.py
+  704b02df8c3b8c01 86
+docker-compose.yml
+  704b02df8c3b8c01 49,58,75,84,128-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "f557009f3f0029855bece2668cceaaba62198bc2",
+  "prompts": {
+    "704b02df8c3b8c01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf875039-f918-4d52-b306-ed075d746135",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 202,
+      "total_deletions": 100,
+      "accepted_lines": 365,
+      "overriden_lines": 0
+    }
+  }
+}
