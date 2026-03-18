@@ -1,0 +1,41 @@
+# Local development configuration (MinIO + Nessie catalog)
+#
+# Nessie provides a Git-like versioned Iceberg catalog with branching,
+# tagging, and merge support for data lakes.
+
+source:
+  type: hive
+  database: nyctaxi
+  hive:
+    metastore_uri: thrift://localhost:9083
+
+target:
+  catalog_type: nessie
+  catalog_name: nessie
+  database: nyctaxi
+
+  nessie:
+    uri: http://localhost:19120/iceberg/
+    warehouse: warehouse
+
+storage:
+  endpoint: http://localhost:9000
+  access_key: minioadmin
+  secret_key: minioadmin
+  path_style_access: true
+
+spark:
+  master: "local[*]"
+  app_name: hive-to-iceberg
+  driver_memory: 2g
+  extra_packages: []
+  extra_config: {}
+
+tables:
+  - nyctaxi.yellow_tripdata
+  - nyctaxi.green_tripdata
+
+migration:
+  write_mode: create
+  repartition: null
+  partition_by: []

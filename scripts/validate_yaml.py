@@ -10,6 +10,7 @@ CONFIG_FILES = [
     "config.yaml",
     "config.aws.yaml",
     "config.custom.yaml",
+    "config.nessie.yaml",
 ]
 
 REQUIRED_TOP_LEVEL_KEYS = {"source", "target"}

@@ -46,8 +46,8 @@ services:
         condition: service_completed_successfully
     ports:
       - "9083:9083"
+    entrypoint: ["/bin/bash", "/opt/hive/conf/entrypoint-wrapper.sh"]
     environment:
-      SERVICE_NAME: metastore
       DB_DRIVER: postgres
       SERVICE_OPTS: >-
         -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
@@ -55,6 +55,7 @@ services:
         -Djavax.jdo.option.ConnectionUserName=hive
         -Djavax.jdo.option.ConnectionPassword=hive
     volumes:
+      - ./docker/hive/entrypoint-wrapper.sh:/opt/hive/conf/entrypoint-wrapper.sh:ro
       - ./docker/hive/hive-site.xml:/opt/hive/conf/hive-site.xml
       - ./docker/hive/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
       - ./docker/hive/lib/postgresql-42.7.4.jar:/opt/hive/lib/postgresql-42.7.4.jar
@@ -71,8 +72,8 @@ services:
         condition: service_completed_successfully
     ports:
       - "9083:9083"
+    entrypoint: ["/bin/bash", "/opt/hive/conf/entrypoint-wrapper.sh"]
     environment:
-      SERVICE_NAME: metastore
       DB_DRIVER: postgres
       SERVICE_OPTS: >-
         -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
@@ -80,6 +81,7 @@ services:
         -Djavax.jdo.option.ConnectionUserName=hive
         -Djavax.jdo.option.ConnectionPassword=hive
     volumes:
+      - ./docker/hive/entrypoint-wrapper.sh:/opt/hive/conf/entrypoint-wrapper.sh:ro
       - ./docker/hive/hive-site.xml:/opt/hive/conf/hive-site.xml
       - ./docker/hive/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
       - ./docker/hive/lib/postgresql-42.7.4.jar:/opt/hive/lib/postgresql-42.7.4.jar
@@ -119,17 +121,32 @@ services:
         mc mb myminio/hive-warehouse --ignore-existing
         mc mb myminio/iceberg-warehouse --ignore-existing
 
-  # Optional: Nessie catalog server (uncomment to use instead of Hadoop catalog)
-  # nessie:
-  #   image: ghcr.io/projectnessie/nessie:latest
-  #   ports:
-  #     - "19120:19120"
-  #   environment:
-  #     NESSIE_CATALOG_DEFAULT_WAREHOUSE: warehouse
-  #     NESSIE_CATALOG_WAREHOUSES_WAREHOUSE_LOCATION: s3://iceberg-warehouse/
-  #     NESSIE_CATALOG_SERVICE_S3_DEFAULT_OPTIONS_ENDPOINT: http://minio:9000
-  #     NESSIE_CATALOG_SERVICE_S3_DEFAULT_OPTIONS_PATH_STYLE_ACCESS: "true"
-  #     NESSIE_CATALOG_SERVICE_S3_DEFAULT_OPTIONS_REGION: us-east-1
+  nessie:
+    image: ghcr.io/projectnessie/nessie:latest
+    ports:
+      - "19120:19120"
+    environment:
+      # Warehouse
+      - nessie.catalog.default-warehouse=warehouse
+      - nessie.catalog.warehouses.warehouse.location=s3://iceberg-warehouse/
+      # S3/MinIO endpoints
+      - nessie.catalog.service.s3.default-options.endpoint=http://minio:9000/
+      - nessie.catalog.service.s3.default-options.external-endpoint=http://localhost:9000/
+      - nessie.catalog.service.s3.default-options.path-style-access=true
+      - nessie.catalog.service.s3.default-options.region=us-east-1
+      # S3 auth — static credentials via Quarkus secrets
+      - nessie.catalog.service.s3.default-options.access-key=urn:nessie-secret:quarkus:nessie.catalog.secrets.access-key
+      - nessie.catalog.secrets.access-key.name=minioadmin
+      - nessie.catalog.secrets.access-key.secret=minioadmin
+      # Disable auth for local dev
+      - nessie.server.authentication.enabled=false
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19120/api/v2/config"]
+      interval: 5s
+      retries: 10
 
 volumes:
   postgres-data-hive3:

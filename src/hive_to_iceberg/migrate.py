@@ -83,6 +83,7 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
 
     elif cat_type == "nessie":
         cfg = config.target.nessie
+        packages.append(iceberg_aws)
         builder = (
             builder
             .config(f"spark.sql.catalog.{cat}", "org.apache.iceberg.spark.SparkCatalog")
