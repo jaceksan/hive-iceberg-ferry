@@ -4,6 +4,9 @@
 # of Spark, Hive, or custom storage formats (e.g. custom ORC/Parquet).
 #
 # Copy to config.yaml and adjust to match your environment.
+#
+# Note: Spark 3.4 requires JDK 8, 11, or 17 (JDK 21 is NOT supported).
+# Spark 3.5+ adds JDK 21 support.
 
 source:
   type: hive

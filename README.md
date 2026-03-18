@@ -22,7 +22,7 @@ Apache Iceberg is rapidly becoming the standard open table format for analytics.
 - Python 3.11–3.12
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Docker & Docker Compose (for local development)
-- Java 11+ (required by PySpark)
+- Java 17 (recommended) — PySpark 3.4 requires JDK 8/11/17; PySpark 3.5+ also supports JDK 21
 
 ### 1. Install
 
