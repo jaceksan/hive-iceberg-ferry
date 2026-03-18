@@ -1,0 +1,31 @@
+pyproject.toml
+  704b02df8c3b8c01 8
+src/hive_to_iceberg/migrate.py
+  704b02df8c3b8c01 15,20-23,30-37,39,51-52
+scripts/validate_yaml.py
+  704b02df8c3b8c01 12
+README.md
+  704b02df8c3b8c01 74,126-139
+config.custom.yaml
+  704b02df8c3b8c01 1-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "2183486eef34941053ef1d11c883cfbae5e29e4c",
+  "prompts": {
+    "704b02df8c3b8c01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf875039-f918-4d52-b306-ed075d746135",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 99,
+      "total_deletions": 9,
+      "accepted_lines": 414,
+      "overriden_lines": 0
+    }
+  }
+}
