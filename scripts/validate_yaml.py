@@ -9,6 +9,7 @@ import yaml
 CONFIG_FILES = [
     "config.yaml",
     "config.aws.yaml",
+    "config.custom.yaml",
 ]
 
 REQUIRED_TOP_LEVEL_KEYS = {"source", "target"}

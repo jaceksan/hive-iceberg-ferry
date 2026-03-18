@@ -12,22 +12,31 @@ logger = logging.getLogger(__name__)
 
 # --- Version-dependent Maven coordinates ---
 
-_SPARK_MAJOR = int(pyspark.__version__.split(".")[0])
+_SPARK_VERSION = tuple(int(x) for x in pyspark.__version__.split(".")[:2])
 
 
 def _iceberg_packages() -> tuple[str, str, str, str]:
     """Return (iceberg_spark, hadoop_aws, iceberg_aws, s3_tables_catalog)
-    matched to the installed PySpark major version."""
-    if _SPARK_MAJOR >= 4:
+    matched to the installed PySpark version."""
+    major, minor = _SPARK_VERSION
+
+    if major >= 4:
         return (
             "org.apache.iceberg:iceberg-spark-runtime-4.0_2.13:1.8.1",
             "org.apache.hadoop:hadoop-aws:3.4.1",
             "org.apache.iceberg:iceberg-aws-bundle:1.8.1",
             "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
         )
-    # Spark 3.5 (default)
+    if (major, minor) >= (3, 5):
+        return (
+            "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1",
+            "org.apache.hadoop:hadoop-aws:3.3.4",
+            "org.apache.iceberg:iceberg-aws-bundle:1.7.1",
+            "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
+        )
+    # Spark 3.4
     return (
-        "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1",
+        "org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.7.1",
         "org.apache.hadoop:hadoop-aws:3.3.4",
         "org.apache.iceberg:iceberg-aws-bundle:1.7.1",
         "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
@@ -39,8 +48,8 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
     iceberg_spark, hadoop_aws, iceberg_aws, s3_tables_catalog = _iceberg_packages()
 
     logger.info(
-        "PySpark %s detected (major=%d), using Iceberg runtime: %s",
-        pyspark.__version__, _SPARK_MAJOR, iceberg_spark,
+        "PySpark %s detected, using Iceberg runtime: %s",
+        pyspark.__version__, iceberg_spark,
     )
 
     builder = (

@@ -71,7 +71,7 @@ Runs SQL checks from `tests/checks.sql` against the migrated Iceberg tables — 
 
 ## Configuration
 
-All settings live in a single YAML file. See [`config.yaml`](config.yaml) for a local MinIO/Hadoop example and [`config.aws.yaml`](config.aws.yaml) for AWS Glue and S3 Tables templates.
+All settings live in a single YAML file. See [`config.yaml`](config.yaml) for a local MinIO/Hadoop example, [`config.aws.yaml`](config.aws.yaml) for AWS, and [`config.custom.yaml`](config.custom.yaml) for environments with internal Spark/Hive forks.
 
 ```yaml
 source:
@@ -122,6 +122,20 @@ migration:
 3. Register it in `sources/registry.py`
 
 See `sources/parquet.py` for a minimal example.
+
+## Custom / Internal Environments
+
+If your environment uses internal forks of Spark, Hive, or custom storage formats, see [`config.custom.yaml`](config.custom.yaml) for a detailed template. Key customization points:
+
+| What | How |
+|------|-----|
+| Internal Maven repos | `spark.jars.repositories` in `extra_config` |
+| Custom JARs (local paths) | `spark.jars` in `extra_config` |
+| Hive metastore fork | `spark.sql.hive.metastore.version` + `jars.path` in `extra_config` |
+| Custom storage format (ORC/Parquet fork) | `spark.sql.hive.convertMetastoreOrc: "false"` in `extra_config`, or create a custom source |
+| Custom SerDe | Spark reads through Hive — if your Spark fork can `spark.table()` your tables, it works |
+
+**Minimum Spark version:** 3.4 (requires `DataFrameWriterV2` API for Iceberg writes).
 
 ## Project Structure
 

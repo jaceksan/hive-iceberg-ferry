@@ -1,0 +1,66 @@
+# Custom environment configuration template
+#
+# Use this as a starting point when your environment uses internal forks
+# of Spark, Hive, or custom storage formats (e.g. custom ORC/Parquet).
+#
+# Copy to config.yaml and adjust to match your environment.
+
+source:
+  type: hive
+  database: <source_database>
+  hive:
+    metastore_uri: thrift://<your-metastore-host>:9083
+
+target:
+  catalog_type: hadoop    # hadoop | nessie | glue | s3_tables
+  catalog_name: iceberg
+  database: <target_database>
+  hadoop:
+    warehouse: s3a://<your-bucket>/iceberg-warehouse/
+
+# Omit for environments where credentials come from IAM/environment.
+# storage:
+#   endpoint: https://s3.amazonaws.com
+#   access_key: <from-env>
+#   secret_key: <from-env>
+
+spark:
+  master: "local[*]"
+  app_name: hive-to-iceberg
+  driver_memory: 4g
+
+  # Add internal/custom JARs not available on Maven Central.
+  # These are loaded onto Spark's classpath at startup.
+  extra_packages: []
+  #   - "com.example:custom-orc-reader:1.0.0"
+
+  # Override or extend Spark configuration for your environment.
+  # Common use cases:
+  #   - Point to internal Maven repositories
+  #   - Configure custom SerDe / InputFormat classes
+  #   - Set Hive metastore client compatibility options
+  #   - Add JARs directly (bypass Maven)
+  extra_config:
+    {}
+    # Internal Maven repo for custom JARs:
+    # spark.jars.repositories: "https://artifactory.internal/maven-releases"
+    #
+    # Load JARs directly from local paths (instead of Maven):
+    # spark.jars: "/opt/libs/custom-orc.jar,/opt/libs/custom-serde.jar"
+    #
+    # Hive metastore client compatibility (for internal Hive forks):
+    # spark.sql.hive.metastore.version: "3.1.3"
+    # spark.sql.hive.metastore.jars: "path"
+    # spark.sql.hive.metastore.jars.path: "/opt/hive/lib/*.jar"
+    #
+    # Custom SerDe for internal storage formats:
+    # spark.sql.hive.convertMetastoreOrc: "false"
+
+tables:
+  - <database>.<table1>
+  - <database>.<table2>
+
+migration:
+  write_mode: create
+  repartition: null
+  partition_by: []
