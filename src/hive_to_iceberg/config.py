@@ -64,6 +64,7 @@ class StorageConfig:
     access_key: Optional[str] = None
     secret_key: Optional[str] = None
     path_style_access: bool = True
+    bucket: Optional[str] = None
 
 
 @dataclass

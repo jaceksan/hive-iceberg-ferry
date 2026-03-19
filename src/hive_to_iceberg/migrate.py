@@ -25,21 +25,21 @@ def _iceberg_packages() -> tuple[str, str, str, str]:
             "org.apache.iceberg:iceberg-spark-runtime-4.0_2.13:1.8.1",
             "org.apache.hadoop:hadoop-aws:3.4.1",
             "org.apache.iceberg:iceberg-aws-bundle:1.8.1",
-            "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
+            "software.amazon.s3tables:s3-tables-catalog-for-iceberg:0.1.8",
         )
     if (major, minor) >= (3, 5):
         return (
             "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1",
             "org.apache.hadoop:hadoop-aws:3.3.4",
             "org.apache.iceberg:iceberg-aws-bundle:1.7.1",
-            "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
+            "software.amazon.s3tables:s3-tables-catalog-for-iceberg:0.1.8",
         )
     # Spark 3.4
     return (
         "org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.7.1",
         "org.apache.hadoop:hadoop-aws:3.3.4",
         "org.apache.iceberg:iceberg-aws-bundle:1.7.1",
-        "software.amazon.s3.tables:s3-tables-catalog-for-iceberg-runtime:0.1.3",
+        "software.amazon.s3tables:s3-tables-catalog-for-iceberg:0.1.8",
     )
 
 
@@ -118,7 +118,7 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
             .config(f"spark.sql.catalog.{cat}", "org.apache.iceberg.spark.SparkCatalog")
             .config(
                 f"spark.sql.catalog.{cat}.catalog-impl",
-                "software.amazon.s3.tables.iceberg.S3TablesCatalog",
+                "software.amazon.s3tables.iceberg.S3TablesCatalog",
             )
             .config(f"spark.sql.catalog.{cat}.warehouse", cfg.warehouse)
             .config(f"spark.sql.catalog.{cat}.region", cfg.region)
@@ -127,21 +127,36 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
     else:
         raise ValueError(f"Unknown catalog type: {cat_type}")
 
-    # S3/MinIO storage overrides (local dev)
+    # S3/MinIO storage overrides
     if config.storage and config.storage.endpoint:
-        builder = (
-            builder
-            .config("spark.hadoop.fs.s3a.endpoint", config.storage.endpoint)
-            .config("spark.hadoop.fs.s3a.access.key", config.storage.access_key)
-            .config("spark.hadoop.fs.s3a.secret.key", config.storage.secret_key)
-            .config(
-                "spark.hadoop.fs.s3a.path.style.access",
-                str(config.storage.path_style_access).lower(),
+        # Use per-bucket config when mixing local MinIO with real AWS.
+        # Per-bucket: spark.hadoop.fs.s3a.bucket.<name>.<property>
+        # Global fallback for endpoints that are clearly non-AWS (local dev).
+        bucket = config.storage.bucket
+        if bucket:
+            prefix = f"spark.hadoop.fs.s3a.bucket.{bucket}"
+            builder = (
+                builder
+                .config(f"{prefix}.endpoint", config.storage.endpoint)
+                .config(f"{prefix}.access.key", config.storage.access_key)
+                .config(f"{prefix}.secret.key", config.storage.secret_key)
+                .config(f"{prefix}.path.style.access",
+                        str(config.storage.path_style_access).lower())
             )
-            .config(
-                "spark.hadoop.fs.s3a.impl",
-                "org.apache.hadoop.fs.s3a.S3AFileSystem",
+        else:
+            builder = (
+                builder
+                .config("spark.hadoop.fs.s3a.endpoint", config.storage.endpoint)
+                .config("spark.hadoop.fs.s3a.access.key", config.storage.access_key)
+                .config("spark.hadoop.fs.s3a.secret.key", config.storage.secret_key)
+                .config(
+                    "spark.hadoop.fs.s3a.path.style.access",
+                    str(config.storage.path_style_access).lower(),
+                )
             )
+        builder = builder.config(
+            "spark.hadoop.fs.s3a.impl",
+            "org.apache.hadoop.fs.s3a.S3AFileSystem",
         )
 
     # Merge extra packages and config from YAML

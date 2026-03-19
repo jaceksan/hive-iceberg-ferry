@@ -1,0 +1,50 @@
+# Cloud migration: local Hive -> AWS S3 Tables
+#
+# Prerequisites:
+#   1. Local Docker stack running (./scripts/setup_docker.sh --profile hive3)
+#   2. Sample data loaded (uv run python scripts/load_sample_data.py)
+#   3. AWS SSO login: aws sso login --sso-session <your-session>
+#   4. Export profile: export AWS_PROFILE=<your-profile>
+#
+# Fill in your AWS S3 Tables details below, or copy this file and customize.
+
+source:
+  type: hive
+  database: nyctaxi
+  hive:
+    metastore_uri: thrift://localhost:9083
+
+target:
+  catalog_type: s3_tables
+  catalog_name: s3tablescatalog
+  database: <target_namespace>
+  s3_tables:
+    warehouse: arn:aws:s3tables:<region>:<account-id>:bucket/<table-bucket-name>
+    region: <region>
+
+# Local MinIO credentials scoped to the hive-warehouse bucket only.
+# AWS credentials for S3 Tables come from AWS_PROFILE / SSO (not overridden).
+storage:
+  endpoint: http://localhost:9000
+  access_key: minioadmin
+  secret_key: minioadmin
+  path_style_access: true
+  bucket: hive-warehouse
+
+spark:
+  master: "local[*]"
+  app_name: hive-to-iceberg
+  driver_memory: 2g
+  extra_packages:
+    - "software.amazon.awssdk:sso:2.29.26"
+    - "software.amazon.awssdk:ssooidc:2.29.26"
+  extra_config: {}
+
+tables:
+  - nyctaxi.yellow_tripdata
+  - nyctaxi.green_tripdata
+
+migration:
+  write_mode: create
+  repartition: null
+  partition_by: []
