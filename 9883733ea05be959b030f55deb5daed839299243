@@ -1,0 +1,33 @@
+config.s3tables.yaml
+  704b02df8c3b8c01 1-48
+tests/checks-s3tables.sql
+  704b02df8c3b8c01 1-17
+src/hive_to_iceberg/config.py
+  704b02df8c3b8c01 67
+scripts/validate_yaml.py
+  704b02df8c3b8c01 14
+src/hive_to_iceberg/migrate.py
+  704b02df8c3b8c01 28,35,42,121,130,132-137,140-144,146-155,157-159
+Makefile
+  704b02df8c3b8c01 1-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "9883733ea05be959b030f55deb5daed839299243",
+  "prompts": {
+    "704b02df8c3b8c01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf875039-f918-4d52-b306-ed075d746135",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 180,
+      "total_deletions": 21,
+      "accepted_lines": 353,
+      "overriden_lines": 0
+    }
+  }
+}
