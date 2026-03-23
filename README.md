@@ -30,44 +30,44 @@ Apache Iceberg is rapidly becoming the standard open table format for analytics.
 uv sync
 ```
 
-### 2. Start local infrastructure
+### 2. Run the full flow
 
 ```bash
-./scripts/setup_docker.sh                 # default: Hive 3.1.3 (for PySpark 3.5)
-./scripts/setup_docker.sh --profile hive4  # Hive 4.0.1 (for PySpark 4.x)
+make all                    # setup + load + migrate + verify (Hadoop catalog)
 ```
 
-Downloads the PostgreSQL JDBC driver (required by Hive metastore), starts the Docker Compose stack, and waits for the metastore to be ready. Services: PostgreSQL, Hive metastore, MinIO, and Presto.
-
-### 3. Load sample data
+Or step by step:
 
 ```bash
-uv run python scripts/load_sample_data.py
+make setup                  # start Docker stack (Hive 3.1.3 default)
+make setup PROFILE=hive4    # or Hive 4.0.1 for PySpark 4.x
+make load                   # download NYC taxi data, load into Hive
+make migrate                # migrate Hive -> Iceberg (Hadoop catalog)
+make verify                 # run SQL checks against migrated tables
 ```
 
-Downloads NYC taxi trip parquet files and loads them into Hive. Use `--rows N` to limit row count (default: 10,000; `0` for all).
-
-### 4. Run the migration
+### Other catalog targets
 
 ```bash
-uv run hive-to-iceberg -c config.yaml
+make all-nessie             # migrate + verify using Nessie catalog
+make migrate-s3tables       # migrate to AWS S3 Tables
 ```
 
-Override specific tables with `-t`:
+### Teardown
 
 ```bash
-uv run hive-to-iceberg -c config.yaml -t nyctaxi.yellow_tripdata
+make down                   # stop Docker stack
+make clean                  # stop and remove volumes
 ```
 
-Add `-v` for debug logging.
+### Direct CLI usage
 
-### 5. Verify the migration
+For finer control, use the CLI directly:
 
 ```bash
-uv run python scripts/verify_migration.py
+uv run hive-to-iceberg -c config.yaml -t nyctaxi.yellow_tripdata -v
+uv run python scripts/verify_migration.py -c config.yaml -q tests/checks.sql
 ```
-
-Runs SQL checks from `tests/checks.sql` against the migrated Iceberg tables — row count comparisons, non-empty assertions, and schema spot-checks. Use `-q` to point at a custom SQL file.
 
 ## Register Mode (add_files — no data rewrite)
 
@@ -250,8 +250,8 @@ Maven coordinates for Iceberg and Hadoop are auto-detected based on the installe
 
 Each profile uses its own PostgreSQL volume (`postgres-data-hive3` / `postgres-data-hive4`), so switching profiles doesn't require clearing data. Just stop one and start the other:
 ```bash
-docker compose --profile hive3 down
-./scripts/setup_docker.sh --profile hive4
+make down
+make setup PROFILE=hive4
 ```
 
 ## How It Works
