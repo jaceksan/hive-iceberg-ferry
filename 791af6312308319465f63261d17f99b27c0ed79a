@@ -1,0 +1,40 @@
+src/hive_to_iceberg/config.py
+  57ddad094f586778 81,84-85
+tests/checks-register.sql
+  57ddad094f586778 1-38
+README.md
+  704b02df8c3b8c01 271
+  57ddad094f586778 72-134,157,216-218,220,222-223,229,259,266-270
+Makefile
+  57ddad094f586778 17-21,31,80-92
+docker-compose.yml
+  57ddad094f586778 123
+src/hive_to_iceberg/migrate.py
+  57ddad094f586778 171-233,251-256
+scripts/validate_yaml.py
+  57ddad094f586778 15
+config.register.yaml
+  57ddad094f586778 1-42
+scripts/load_raw_parquet.py
+  57ddad094f586778 1-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "791af6312308319465f63261d17f99b27c0ed79a",
+  "prompts": {
+    "57ddad094f586778": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "90093ba1-6bfb-4d43-9b40-f1c389c6bd15",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 391,
+      "total_deletions": 7,
+      "accepted_lines": 391,
+      "overriden_lines": 0
+    }
+  }
+}
