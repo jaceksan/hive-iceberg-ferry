@@ -13,7 +13,9 @@ alwaysApply: false
 
 The migration has three phases:
 1. **Spark session setup** — source configures its Spark needs, then Iceberg catalog and storage are configured
-2. **Per-table migration** — source reads a DataFrame, engine optionally repartitions, writes via `DataFrameWriterV2`
+2. **Per-table migration** — one of two write paths:
+   - **Standard** (`create | replace | append`) — source reads a DataFrame, engine optionally repartitions, writes via `DataFrameWriterV2`
+   - **Register** (`register`) — infers schema from existing Parquet, creates Iceberg table, calls `add_files` stored procedure to register files without rewriting data
 3. **Validation** — compares source and target row counts
 
 ## Pluggable source pattern
@@ -48,6 +50,23 @@ Target catalogs follow a discriminated-union pattern:
 - **NEVER:** Remove or weaken the row-count validation — it's the primary correctness gate.
 - **NEVER:** Put source-specific logic in `migrate.py` — it belongs in `sources/`.
 
+## Register mode (`write_mode: register`)
+
+Uses Iceberg's `add_files` stored procedure to register existing Parquet files without data rewrite. Implemented in `_register_table()` in `migrate.py`.
+
+Flow:
+1. Infer schema from Parquet files (Spark reads partition columns from directory names)
+2. `CREATE TABLE IF NOT EXISTS ... USING iceberg PARTITIONED BY (...)`
+3. `CALL catalog.system.add_files(table => '...', source_table => '`parquet`.`s3a://...`')`
+
+Config fields:
+- `migration.write_mode: register`
+- `migration.register_partition_columns: [ds]` — partition columns to reconstruct from directory structure
+
+Limitations:
+- Does not work with S3 Tables catalog (requires data written through its API)
+- Works with Glue, Hadoop, and Nessie catalogs
+
 ## Common traps
 
 | Mistake | Symptom | Fix |
@@ -56,3 +75,4 @@ Target catalogs follow a discriminated-union pattern:
 | Wrong S3A config for MinIO | `AccessDenied` or connection refused | Check `storage` section — needs `path_style_access: true` and correct endpoint |
 | `create` mode on existing table | `TableAlreadyExistsException` | Use `replace` or `append` write mode |
 | Source logic in migrate.py | Breaks pluggability | Move to `sources/` subclass |
+| `register` mode with S3 Tables | `add_files` not supported | Use Glue, Hadoop, or Nessie catalog instead |

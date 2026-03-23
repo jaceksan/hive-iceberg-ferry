@@ -16,6 +16,10 @@ CLI tool that migrates data from pluggable sources to Apache Iceberg format usin
 Built-in sources: Hive (via Thrift metastore) and Parquet files.
 Target catalogs: Hadoop, Nessie, AWS Glue, AWS S3 Tables.
 
+Two write paths:
+- **Standard** (`write_mode: create | replace | append`) — reads source data into a DataFrame, writes via `DataFrameWriterV2`
+- **Register** (`write_mode: register`) — registers existing Parquet files as Iceberg using `add_files` stored procedure (metadata-only, no data rewrite)
+
 ## Owns
 
 - Migration logic and Iceberg write path (`src/hive_to_iceberg/`)
@@ -48,6 +52,7 @@ Target catalogs: Hadoop, Nessie, AWS Glue, AWS S3 Tables.
 | Hive source | `src/hive_to_iceberg/sources/hive.py` | Reads from Hive metastore |
 | Parquet source | `src/hive_to_iceberg/sources/parquet.py` | Reads Parquet files from local/S3 |
 | Sample data loader | `scripts/load_sample_data.py` | Downloads NYC taxi parquet, loads into Hive |
+| Raw Parquet loader | `scripts/load_raw_parquet.py` | Writes Hive-style partitioned Parquet to MinIO (simulates external export) |
 | YAML config validator | `scripts/validate_yaml.py` | Validates config files structure and values |
 
 ## Toolchain

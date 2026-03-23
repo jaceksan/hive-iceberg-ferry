@@ -15,7 +15,7 @@ alwaysApply: false
 | PostgreSQL 16 | `postgres:16` | 5432 | Hive metastore backend DB |
 | Hive 3.1.3 | `apache/hive:4.0.1` | 9083 | Thrift metastore server |
 | MinIO | `minio/minio` | 9000, 9001 | S3-compatible object storage |
-| MinIO init | `minio/mc` | — | Creates `hive-warehouse` and `iceberg-warehouse` buckets |
+| MinIO init | `minio/mc` | — | Creates `hive-warehouse`, `iceberg-warehouse`, and `raw-parquet` buckets |
 | Presto | `prestodb/presto` | 8080 | Query engine for ad-hoc validation |
 
 ## Configuration files
