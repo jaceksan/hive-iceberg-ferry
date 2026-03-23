@@ -1,0 +1,42 @@
+# Register raw Parquet files as Iceberg tables using add_files (no data rewrite)
+#
+# This demonstrates the "metadata-only" approach: existing Parquet files on S3
+# are registered in an Iceberg catalog by creating only the metadata layer
+# (manifests, snapshots, metadata.json). No data is copied or rewritten.
+#
+# Prerequisites:
+#   1. Docker stack running: make setup
+#   2. Raw Parquet loaded: make load-raw
+
+source:
+  type: parquet
+  database: default
+
+target:
+  catalog_type: hadoop
+  catalog_name: iceberg
+  database: nyctaxi
+
+  hadoop:
+    warehouse: s3a://iceberg-warehouse/
+
+storage:
+  endpoint: http://localhost:9000
+  access_key: minioadmin
+  secret_key: minioadmin
+  path_style_access: true
+
+spark:
+  master: "local[*]"
+  app_name: iceberg-register
+  driver_memory: 2g
+  extra_packages: []
+  extra_config: {}
+
+tables:
+  - s3a://raw-parquet/yellow_tripdata
+  - s3a://raw-parquet/green_tripdata
+
+migration:
+  write_mode: register
+  register_partition_columns: [ds]

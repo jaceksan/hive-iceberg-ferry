@@ -14,6 +14,11 @@
 #
 #   make migrate-s3tables       # Migrate Hive -> AWS S3 Tables
 #
+#   make load-raw               # Write raw partitioned Parquet to MinIO
+#   make register               # Register Parquet as Iceberg (add_files, no rewrite)
+#   make verify-register        # Verify registered tables
+#   make all-register           # Full register flow: setup + load-raw + register + verify
+#
 #   make down                   # Stop Docker stack
 #   make clean                  # Stop stack and remove volumes
 
@@ -23,6 +28,7 @@ PROFILE ?= hive3
         migrate verify all \
         migrate-nessie verify-nessie all-nessie \
         migrate-s3tables verify-s3tables all-s3tables \
+        load-raw register verify-register all-register \
         validate-yaml
 
 # --- Infrastructure ---
@@ -70,6 +76,19 @@ verify-s3tables:
 	uv run python scripts/verify_migration.py -c config.s3tables.yaml -q tests/checks-s3tables.sql
 
 all-s3tables: migrate-s3tables verify-s3tables
+
+# --- Register (add_files — metadata-only, no data rewrite) ---
+
+load-raw:
+	uv run python scripts/load_raw_parquet.py
+
+register:
+	uv run hive-to-iceberg -c config.register.yaml -v
+
+verify-register:
+	uv run python scripts/verify_migration.py -c config.register.yaml -q tests/checks-register.sql
+
+all-register: setup load-raw register verify-register
 
 # --- Validation ---
 

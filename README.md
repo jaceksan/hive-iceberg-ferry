@@ -69,6 +69,69 @@ uv run python scripts/verify_migration.py
 
 Runs SQL checks from `tests/checks.sql` against the migrated Iceberg tables — row count comparisons, non-empty assertions, and schema spot-checks. Use `-q` to point at a custom SQL file.
 
+## Register Mode (add_files — no data rewrite)
+
+If your data is already on S3 as Parquet files (e.g., produced by an external export pipeline), you can create Iceberg tables **without rewriting any data**. The `register` mode uses Iceberg's `add_files` stored procedure to build only the metadata layer (manifests, snapshots, `metadata.json`) on top of your existing files.
+
+This is ideal when:
+- An external system (Hyperloop, Airflow, custom ETL) writes Parquet to S3
+- Files use Hive-style partition layout (`ds=2024-01-15/`)
+- You want to query them as Iceberg tables without copying data
+
+### Quick Start (register flow)
+
+```bash
+# 1. Start local infrastructure
+make setup
+
+# 2. Write sample raw Parquet to MinIO (simulates external export)
+make load-raw
+
+# 3. Register as Iceberg tables (metadata-only, no data rewrite)
+make register
+
+# 4. Verify
+make verify-register
+```
+
+Or run the full flow in one command: `make all-register`
+
+### How it works
+
+1. `load_raw_parquet.py` writes NYC taxi data as Hive-style partitioned Parquet to `s3a://raw-parquet/`, with the partition column (`ds`) encoded only in directory names and dropped from data files — simulating a typical external export pipeline
+2. The migration tool infers the schema from the Parquet files (including partition columns from directory structure), creates an Iceberg table, and calls `add_files` to register the files
+3. Iceberg reads Parquet footer statistics (min/max/null counts) and writes them into manifests — query performance (predicate pushdown, partition pruning) is equivalent to a native Iceberg write
+
+### Configuration
+
+```yaml
+source:
+  type: parquet
+
+target:
+  catalog_type: glue    # or hadoop for local dev
+  # ...
+
+tables:
+  - s3a://raw-parquet/yellow_tripdata
+  - s3a://raw-parquet/green_tripdata
+
+migration:
+  write_mode: register
+  register_partition_columns: [ds]
+```
+
+See [`config.register.yaml`](config.register.yaml) for a complete local example.
+
+### Glue vs S3 Tables for register mode
+
+| Catalog | Works with add_files? | Notes |
+|---------|----------------------|-------|
+| Glue | Yes | Recommended for registering external Parquet |
+| S3 Tables | No | Requires data to be written through its API |
+| Hadoop | Yes | Good for local dev with MinIO |
+| Nessie | Yes | Good for local dev with branching |
+
 ## Configuration
 
 All settings live in a single YAML file. See [`config.yaml`](config.yaml) for a local MinIO/Hadoop example, [`config.aws.yaml`](config.aws.yaml) for AWS, and [`config.custom.yaml`](config.custom.yaml) for environments with internal Spark/Hive forks.
@@ -91,7 +154,7 @@ storage:
   secret_key: minioadmin
 
 migration:
-  write_mode: create      # create | replace | append
+  write_mode: create      # create | replace | append | register
   repartition: null
   partition_by: []
 ```
@@ -150,17 +213,20 @@ If your environment uses internal forks of Spark, Hive, or custom storage format
 │       ├── hive.py       # Hive metastore source
 │       └── parquet.py    # Parquet file source
 ├── scripts/
-│   ├── load_sample_data.py
-│   ├── verify_migration.py  # SQL-based post-migration verification
+│   ├── load_sample_data.py     # Load sample data into Hive
+│   ├── load_raw_parquet.py     # Write raw partitioned Parquet to MinIO
+│   ├── verify_migration.py     # SQL-based post-migration verification
 │   ├── validate_yaml.py
-│   └── setup_docker.sh      # Docker stack bootstrap with profile support
+│   └── setup_docker.sh         # Docker stack bootstrap with profile support
 ├── tests/
-│   └── checks.sql           # SQL verification checks (editable)
+│   ├── checks.sql              # SQL verification checks (editable)
+│   └── checks-register.sql    # Checks for register (add_files) flow
 ├── docker/
 │   ├── hive/             # Hive metastore config (hive-site.xml, core-site.xml)
 │   └── presto/           # Presto catalog config
 ├── config.yaml           # Local dev config (MinIO + Hadoop catalog)
 ├── config.aws.yaml       # AWS config template (Glue / S3 Tables)
+├── config.register.yaml  # Register mode config (add_files, no rewrite)
 └── docker-compose.yml    # Full local stack
 ```
 
@@ -190,11 +256,18 @@ docker compose --profile hive3 down
 
 ## How It Works
 
+**Standard mode** (`write_mode: create | replace | append`):
 1. Reads the YAML config and instantiates the configured source
 2. Builds a SparkSession with Iceberg extensions, source config, and target catalog
 3. For each table: reads a DataFrame from the source, optionally repartitions, and writes to Iceberg using `DataFrameWriterV2`
 4. Validates row counts between source and target
 5. Prints a migration summary with success/failure counts
+
+**Register mode** (`write_mode: register`):
+1. Infers schema from existing Parquet files (including partition columns from directory structure)
+2. Creates the Iceberg table if it doesn't exist
+3. Calls `add_files` stored procedure to register existing files as Iceberg metadata — no data is copied or rewritten
+4. Validates row counts and prints a summary
 
 ## License
 

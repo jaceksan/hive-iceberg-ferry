@@ -78,9 +78,11 @@ class SparkConfig:
 
 @dataclass
 class MigrationConfig:
-    write_mode: str = "create"
+    write_mode: str = "create"  # create | replace | append | register
     repartition: Optional[int] = None
     partition_by: list[str] = field(default_factory=list)
+    # register mode: partition columns to reconstruct from directory structure
+    register_partition_columns: list[str] = field(default_factory=list)
 
 
 @dataclass

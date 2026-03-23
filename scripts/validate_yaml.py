@@ -12,6 +12,7 @@ CONFIG_FILES = [
     "config.custom.yaml",
     "config.nessie.yaml",
     "config.s3tables.yaml",
+    "config.register.yaml",
 ]
 
 REQUIRED_TOP_LEVEL_KEYS = {"source", "target"}

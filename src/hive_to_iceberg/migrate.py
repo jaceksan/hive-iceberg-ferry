@@ -168,6 +168,69 @@ def build_spark_session(config: Config, source: Source) -> SparkSession:
     return builder.getOrCreate()
 
 
+def _register_table(
+    spark: SparkSession,
+    config: Config,
+    table_ref: str,
+    full_target: str,
+) -> dict:
+    """Register existing Parquet files as an Iceberg table using add_files.
+
+    This avoids rewriting data — only Iceberg metadata (manifests, snapshots,
+    metadata.json) is created.  The Parquet files must already exist on S3 in
+    Hive-style partition layout (e.g. ds=2024-01-15/).
+    """
+    cat = config.target.catalog_name
+    partition_cols = config.migration.register_partition_columns
+
+    # Read the Parquet directory to infer schema (Spark reads the partition
+    # columns from directory names and adds them to the schema automatically).
+    inferred = spark.read.parquet(table_ref)
+    data_schema = inferred.schema
+    logger.info("  Inferred schema: %s", data_schema.simpleString())
+
+    # Ensure target namespace exists
+    target_db = config.target.database
+    spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {cat}.{target_db}")
+
+    # Build CREATE TABLE with partition spec
+    col_defs = ", ".join(
+        f"`{f.name}` {f.dataType.simpleString()}" for f in data_schema.fields
+    )
+    partition_clause = ""
+    if partition_cols:
+        partition_clause = f" PARTITIONED BY ({', '.join(f'`{c}`' for c in partition_cols)})"
+
+    create_sql = (
+        f"CREATE TABLE IF NOT EXISTS {full_target} ({col_defs})"
+        f" USING iceberg{partition_clause}"
+    )
+    logger.info("  Creating table: %s", create_sql)
+    spark.sql(create_sql)
+
+    # Build the source_table reference for add_files.
+    # Backtick-quoted format tells Spark to read raw Parquet from this path.
+    source_table = f"`parquet`.`{table_ref}`"
+
+    add_files_sql = (
+        f"CALL {cat}.system.add_files("
+        f"table => '{full_target}', "
+        f"source_table => \"{source_table}\")"
+    )
+    logger.info("  Registering files: %s", add_files_sql)
+    spark.sql(add_files_sql)
+
+    tgt_count = spark.table(full_target).count()
+    logger.info("  Registered rows: %d", tgt_count)
+
+    return {
+        "source": table_ref,
+        "target": full_target,
+        "source_rows": tgt_count,  # no separate source count for register mode
+        "target_rows": tgt_count,
+    }
+
+
 def migrate_table(
     spark: SparkSession,
     source: Source,
@@ -184,6 +247,12 @@ def migrate_table(
     full_target = f"{cat}.{target_db}.{target_table_name}"
 
     logger.info("Migrating %s -> %s", src_name, full_target)
+
+    mode = config.migration.write_mode
+
+    # Register mode: use add_files instead of rewriting data
+    if mode == "register":
+        return _register_table(spark, config, table_ref, full_target)
 
     df = source.read_table(spark, table_ref)
     src_count = df.count()
@@ -202,7 +271,6 @@ def migrate_table(
         from pyspark.sql.functions import col
         writer = writer.partitionedBy(*[col(c) for c in config.migration.partition_by])
 
-    mode = config.migration.write_mode
     if mode == "create":
         writer.create()
     elif mode == "replace":
