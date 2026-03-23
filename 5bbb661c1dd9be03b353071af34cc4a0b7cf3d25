@@ -1,0 +1,27 @@
+.aida/rules/docker-stack.md
+  57ddad094f586778 18
+.aida/rules/project-overview.md
+  57ddad094f586778 19-22,55
+.aida/rules/migration-engine.md
+  57ddad094f586778 16-18,53-69,78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "5bbb661c1dd9be03b353071af34cc4a0b7cf3d25",
+  "prompts": {
+    "57ddad094f586778": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "90093ba1-6bfb-4d43-9b40-f1c389c6bd15",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jan Soubusta <jan.soubusta@gooddata.com>",
+      "messages": [],
+      "total_additions": 27,
+      "total_deletions": 2,
+      "accepted_lines": 27,
+      "overriden_lines": 0
+    }
+  }
+}
